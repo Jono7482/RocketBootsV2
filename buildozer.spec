@@ -22,8 +22,8 @@ source.exclude_dirs = bin,.buildozer,.git,build,dist,.idea
 version = 0.5.0
 
 # (list) Application requirements
-# Modern Python 3 and Kivy 2.3+
-requirements = python3,kivy,pillow
+# Modern Python 3 and Kivy (Pillow is NOT needed and causes NDK C-recipe compile errors)
+requirements = python3,kivy
 
 # (str) Presplash of the application
 presplash.filename = %(source.dir)s/assets/presplash.png
@@ -49,8 +49,11 @@ android.minapi = 21
 # (str) Android NDK version to use
 android.ndk = 25b
 
-# (list) The Android architectures to build for (arm64-v8a is REQUIRED for modern phones)
-android.archs = arm64-v8a, armeabi-v7a
+# (int) Android NDK API to use
+android.ndk_api = 21
+
+# (list) The Android architecture to build for (arm64-v8a is the 64-bit standard for all modern Android phones)
+android.archs = arm64-v8a
 
 # (bool) Automatically accept SDK licenses
 android.accept_sdk_license = True
@@ -60,9 +63,6 @@ android.enable_androidx = True
 
 # (bool) Allow backup
 android.allow_backup = True
-
-# (str) Android entry point
-#android.entrypoint = org.kivy.android.PythonActivity
 
 # (str) Android logcat filters to use
 android.logcat_filters = *:S python:D
