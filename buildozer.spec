@@ -22,7 +22,6 @@ source.exclude_dirs = bin,.buildozer,.git,build,dist,.idea
 version = 0.5.0
 
 # (list) Application requirements
-# Modern Python 3 and Kivy
 requirements = python3,kivy
 
 # (str) Presplash of the application
@@ -40,23 +39,14 @@ fullscreen = 1
 # (list) Permissions
 android.permissions = INTERNET,VIBRATE,WAKE_LOCK
 
-# (int) Android API to use
+# (int) Android API to use (34 for Android 14)
 android.api = 34
 
 # (int) Minimum API required (21 = Android 5.0 Lollipop+)
 android.minapi = 21
 
-# (str) Android NDK version to use
-android.ndk = 25b
-
-# (int) Android NDK API to use
-android.ndk_api = 21
-
-# (list) The Android architecture to build for (arm64-v8a is the 64-bit standard for all modern Android phones)
+# (list) The Android architecture to build for (arm64-v8a is the standard for modern Android phones)
 android.archs = arm64-v8a
-
-# (str) python-for-android branch to use (develop branch contains modern Python 3.11/3.12 & NDK 25 fixes)
-p4a.branch = develop
 
 # (bool) Automatically accept SDK licenses
 android.accept_sdk_license = True

@@ -17,13 +17,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Fix Directory Permissions
+      - name: Prepare Build Environment
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           chmod -R 777 "$GITHUB_WORKSPACE"
+          apt-get update -qq
+          apt-get install -y -qq autoconf automake libtool libltdl-dev pkg-config
 
       - name: Build Android Package
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal
           buildozer -v android debug
 
       - name: Upload APK Artifact
