@@ -7,11 +7,11 @@ echo "=== Rocket Boots Android APK Builder ==="
 # 1. Install dependencies
 echo "[1/4] Installing dependencies..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+sudo apt-get install -y -qq build-essential libtool libltdl-dev autoconf automake pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev patch gettext git zip unzip openjdk-17-jdk python3-dev
 
 # 2. Install Buildozer
 echo "[2/4] Installing Buildozer and Cython..."
-pip install --user --upgrade "buildozer>=1.5.0" "Cython==0.29.36"
+pip install --user --upgrade "Cython==0.29.33" virtualenv "git+https://github.com/kivy/buildozer.git"
 export PATH=$PATH:~/.local/bin
 
 # 3. Build APK
