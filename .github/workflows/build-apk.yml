@@ -9,20 +9,26 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
+    container:
+      image: kivy/buildozer:latest
+      options: --user root
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer Container
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: stable
+      - name: Fix Directory Permissions
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          chmod -R 777 "$GITHUB_WORKSPACE"
 
-      - name: Upload APK artifact
+      - name: Build Android Package
+        run: |
+          buildozer -v android debug
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: RocketBoots-APK
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
+          if-no-files-found: error
