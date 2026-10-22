@@ -1,0 +1,3 @@
+# Rocket Boots - Requirements for Python 3 & Modern Kivy
+kivy>=2.3.0
+pillow>=9.5.0
