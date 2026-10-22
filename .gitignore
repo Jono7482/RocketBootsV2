@@ -1,0 +1,9 @@
+bin/
+build/
+dist/
+.idea/
+.buildozer/
+*.pyc
+__pycache__/
+*.zip
+RocketBoots-20261021T234938Z-1-001/
