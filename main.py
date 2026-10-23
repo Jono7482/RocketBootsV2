@@ -240,13 +240,21 @@ class Player(Widget):
         if boost_state:
             self.set_boost_volume('high')
             if 'flame2' in GIFS and GIFS['flame2']:
-                self.flames.source = GIFS['flame2'][0]
-                self.flames.height = self.flames.texture_size[1] * RATIO
+                if hasattr(self.flames, 'set_frames'):
+                    self.flames.set_frames(GIFS['flame2'])
+                else:
+                    self.flames.source = GIFS['flame2'][0]
+                flame_h = self.flames.texture_size[1] if self.flames.texture_size[1] > 0 else 40
+                self.flames.height = flame_h * RATIO
         else:
             self.set_boost_volume('low')
             if 'flames1' in GIFS and GIFS['flames1']:
-                self.flames.source = GIFS['flames1'][0]
-                self.flames.height = self.flames.texture_size[1] * RATIO
+                if hasattr(self.flames, 'set_frames'):
+                    self.flames.set_frames(GIFS['flames1'])
+                else:
+                    self.flames.source = GIFS['flames1'][0]
+                flame_h = self.flames.texture_size[1] if self.flames.texture_size[1] > 0 else 40
+                self.flames.height = flame_h * RATIO
 
     def get_player(self):
         return self.children[0]
@@ -301,6 +309,59 @@ class Clouds(Widget):
                 each.y = WINDOW_SIZE[1] * (randrange(50, 90) * .01)
 
 
+class AnimatedImage(Image):
+    """
+    Renders multi-frame animation sequences smoothly across both desktop and mobile
+    without depending on external GIF decoders.
+    """
+    def __init__(self, frames=None, anim_delay=0.2, allow_stretch=True, keep_ratio=True, **kwargs):
+        if frames is None:
+            frames = []
+        elif isinstance(frames, str):
+            frames = [frames]
+        else:
+            frames = list(frames)
+        self.frames = frames
+        self.frame_index = 0
+        self.anim_delay = anim_delay
+        self._anim_event = None
+
+        first_source = self.frames[0] if self.frames else kwargs.pop('source', '')
+        super(AnimatedImage, self).__init__(source=first_source, allow_stretch=allow_stretch, keep_ratio=keep_ratio, **kwargs)
+
+        w = self.texture_size[0] if self.texture_size[0] > 0 else 27
+        h = self.texture_size[1] if self.texture_size[1] > 0 else 40
+        self.size = w * RATIO, h * RATIO
+
+        if len(self.frames) > 1 and self.anim_delay > 0:
+            self._anim_event = Clock.schedule_interval(self._next_frame, self.anim_delay)
+
+    def _next_frame(self, dt):
+        if not self.parent or not self.frames:
+            return
+        self.frame_index = (self.frame_index + 1) % len(self.frames)
+        self.source = self.frames[self.frame_index]
+
+    def set_frames(self, frames, anim_delay=None):
+        if self._anim_event:
+            Clock.unschedule(self._anim_event)
+            self._anim_event = None
+        if isinstance(frames, str):
+            self.frames = [frames]
+        else:
+            self.frames = list(frames)
+        self.frame_index = 0
+        if anim_delay is not None:
+            self.anim_delay = anim_delay
+        if self.frames:
+            self.source = self.frames[0]
+            w = self.texture_size[0] if self.texture_size[0] > 0 else 27
+            h = self.texture_size[1] if self.texture_size[1] > 0 else 40
+            self.size = w * RATIO, h * RATIO
+            if len(self.frames) > 1 and self.anim_delay > 0:
+                self._anim_event = Clock.schedule_interval(self._next_frame, self.anim_delay)
+
+
 ''' load_assets()
 go through assets folder and put all audio and image file locations into a dict'''
 
@@ -320,7 +381,11 @@ def load_assets():
 
     get_dict(audio, 'sounds', '*.wav')
     get_dict(images, 'images', '*.png')
-    get_dict(gifs, 'gifs', '*.gif')
+    # Load PNG animation frames first (for 100% reliable rendering on Android/iOS/desktop)
+    get_dict(gifs, 'gifs', '*.png')
+    # If no PNG frames found, fall back to .gif
+    if not gifs:
+        get_dict(gifs, 'gifs', '*.gif')
     return audio, images, gifs
 
 
@@ -333,21 +398,25 @@ def load_image(source, index=0, stretch=True, _ratio=True, **kwargs):
         index = choice(range(len(IMAGES[source])))
     try:
         image = Image(source=IMAGES[source][index], allow_stretch=stretch, keep_ratio=_ratio, **kwargs)
-        image.size = image.texture_size[0] * RATIO, image.texture_size[1] * RATIO
+        w = image.texture_size[0] if image.texture_size[0] > 0 else 100
+        h = image.texture_size[1] if image.texture_size[1] > 0 else 100
+        image.size = w * RATIO, h * RATIO
         return image
     except Exception as e:
         print("Can't load image name:[%s] index:[%s]: %s" % (source, index, e))
 
 
 def load_gif(source, index=0, stretch=True, _ratio=True, **kwargs):
-    if index < 0:
-        index = choice(range(len(GIFS[source])))
+    frames = GIFS.get(source, [])
+    if not frames:
+        print("Can't load gif name:[%s]: no frames found" % source)
+        return Image(**kwargs)
     try:
-        image = Image(source=GIFS[source][index], allow_stretch=stretch, keep_ratio=_ratio, **kwargs)
-        image.size = image.texture_size[0] * RATIO, image.texture_size[1] * RATIO
+        image = AnimatedImage(frames=frames, allow_stretch=stretch, keep_ratio=_ratio, **kwargs)
         return image
     except Exception as e:
         print("Can't load gif name:[%s] index:[%s]: %s" % (source, index, e))
+        return Image(**kwargs)
 
 
 '''Level(object)
@@ -416,17 +485,21 @@ class LoadingAnimation(Player):
         super(LoadingAnimation, self).__init__()
 
     def start_animation(self):
-        self.player.size = self.player.texture_size[0] * RATIO * 0.1, self.player.texture_size[1] * RATIO * 0.1
+        pw = self.player.texture_size[0] if self.player.texture_size[0] > 0 else 27
+        ph = self.player.texture_size[1] if self.player.texture_size[1] > 0 else 40
+        fw = self.flames.texture_size[0] if self.flames.texture_size[0] > 0 else 27
+        fh = self.flames.texture_size[1] if self.flames.texture_size[1] > 0 else 40
+        self.player.size = pw * RATIO * 0.1, ph * RATIO * 0.1
         self.player.pos = (0, 0)
         anim1 = Animation(pos=(WINDOW_SIZE[0] * .20, WINDOW_SIZE[1] * 0.38),
-                          size=(self.player.texture_size[0] * RATIO, self.player.texture_size[1] * RATIO), duration=2.0)
-        self.flames.size = self.flames.texture_size[0] * RATIO * 0.1, self.flames.texture_size[1] * RATIO * 0.1
+                          size=(pw * RATIO, ph * RATIO), duration=2.0)
+        self.flames.size = fw * RATIO * 0.1, fh * RATIO * 0.1
         self.flames.top = self.player.y
         self.flames.x = self.player.x
-        anim2 = Animation(pos=(WINDOW_SIZE[0] * .20, WINDOW_SIZE[1] * 0.38 - self.flames.texture_size[1] * RATIO),
-                          size=(self.flames.texture_size[0] * RATIO, self.flames.texture_size[1] * RATIO), duration=2.0)
+        anim2 = Animation(pos=(WINDOW_SIZE[0] * .20, WINDOW_SIZE[1] * 0.38 - fh * RATIO),
+                          size=(fw * RATIO, fh * RATIO), duration=2.0)
         anim1 += Animation(pos=(WINDOW_SIZE[0], WINDOW_SIZE[1] * 0.5), duration=2)
-        anim2 += Animation(pos=(WINDOW_SIZE[0], WINDOW_SIZE[1] * 0.5 - self.flames.texture_size[1] * RATIO), duration=2)
+        anim2 += Animation(pos=(WINDOW_SIZE[0], WINDOW_SIZE[1] * 0.5 - fh * RATIO), duration=2)
         anim1.bind(on_complete=partial(self.enter_animation))
         anim1.start(self.player)
         anim2.start(self.flames)
